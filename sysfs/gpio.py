@@ -30,6 +30,8 @@ __all__ = ('DIRECTIONS', 'INPUT', 'OUTPUT',
 
 import errno
 import os
+from os import listdir
+from os.path import isdir,join
 import select
 
 from twisted.internet import reactor
@@ -48,10 +50,10 @@ SYSFS_EXPORT_PATH   = SYSFS_BASE_PATH + '/export'
 SYSFS_UNEXPORT_PATH = SYSFS_BASE_PATH + '/unexport'
 
 SYSFS_GPIO_PATH           = SYSFS_BASE_PATH + '/gpio%d'
-SYSFS_GPIO_DIRECTION_PATH = SYSFS_GPIO_PATH + '/direction'
-SYSFS_GPIO_EDGE_PATH      = SYSFS_GPIO_PATH + '/edge'
-SYSFS_GPIO_VALUE_PATH     = SYSFS_GPIO_PATH + '/value'
-SYSFS_GPIO_ACTIVE_LOW_PATH = SYSFS_GPIO_PATH + '/active_low'
+SYSFS_GPIO_DIRECTION_PATH = '/direction'
+SYSFS_GPIO_EDGE_PATH      = '/edge'
+SYSFS_GPIO_VALUE_PATH     = '/value'
+SYSFS_GPIO_ACTIVE_LOW_PATH ='/active_low'
 
 SYSFS_GPIO_VALUE_LOW   = '0'
 SYSFS_GPIO_VALUE_HIGH  = '1'
@@ -74,6 +76,13 @@ DIRECTIONS = (INPUT, OUTPUT)
 EDGES = (RISING, FALLING, BOTH)
 ACTIVE_LOW_MODES = (ACTIVE_LOW_ON, ACTIVE_LOW_OFF)
 
+def GetGpioDirFromPin(number):
+    ds = listdir(SYSFS_BASE_PATH)
+    nd = filter(lambda a: a.startswith("gpio" + str(number)),ds)
+    if len(nd) > 0:
+	return nd[0]
+    else:
+	return "DONOT"
 
 class Pin(object):
     """
@@ -198,7 +207,7 @@ class Pin(object):
         @rtype: str
         @return: the path to sysfs value file
         """
-        return SYSFS_GPIO_VALUE_PATH % self.number
+        return SYSFS_BASE_PATH + "/" + GetGpioDirFromPin(self.number) + SYSFS_GPIO_VALUE_PATH
 
     def _sysfs_gpio_direction_path(self):
         """
@@ -207,7 +216,7 @@ class Pin(object):
         @rtype: str
         @return: the path to sysfs direction file
         """
-        return SYSFS_GPIO_DIRECTION_PATH % self.number
+        return SYSFS_BASE_PATH + "/" + GetGpioDirFromPin(self.number) + SYSFS_GPIO_DIRECTION_PATH
 
     def _sysfs_gpio_edge_path(self):
         """
@@ -216,7 +225,7 @@ class Pin(object):
         @rtype: str
         @return: the path to sysfs edge file
         """
-        return SYSFS_GPIO_EDGE_PATH % self.number
+        return SYSFS_BASE_PATH + "/" + GetGpioDirFromPin(self.number) + SYSFS_GPIO_EDGE_PATH
 
     def _sysfs_gpio_active_low_path(self):
         """
@@ -225,8 +234,7 @@ class Pin(object):
         @rtype: str
         @return: the path to sysfs active_low file
         """
-        return SYSFS_GPIO_ACTIVE_LOW_PATH % self.number
-
+        return SYSFS_BASE_PATH + "/" + GetGpioDirFromPin(self.number) + SYSFS_GPIO_ACTIVE_LOW_PATH
 
 class Controller(object):
     '''
@@ -402,7 +410,7 @@ class Controller(object):
         @rtype: bool
         @return: C{True} when it's already exported, otherwise C{False}
         """
-        gpio_path = SYSFS_GPIO_PATH % number
+        gpio_path = SYSFS_BASE_PATH + "/" + GetGpioDirFromPin(number)
         return os.path.isdir(gpio_path)
 
     def _check_pin_validity(self, number):
